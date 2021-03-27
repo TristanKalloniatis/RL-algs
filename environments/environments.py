@@ -2,9 +2,31 @@ import gym
 import numpy as np
 from typing import List, Dict
 
+gym.envs.register(id="Gridworld-v0", entry_point="environments.environments:Gridworld")
+gym.envs.register(
+    id="SimpleMaze-v0", entry_point="environments.environments:SimpleMaze"
+)
+gym.envs.register(
+    id="CartPoleDictionary-v0",
+    entry_point="environments.environments:CartPoleDictionary",
+)
 
-class Gridworld(gym.Env):
+
+class Environment(gym.Env):
+    def __init__(self, has_goal: bool, has_obstacle: bool):
+        super().__init__()
+        self.has_goal = has_goal
+        self.has_obstacle = has_obstacle
+        self.episode_length = 0
+
+    @property
+    def solved(self) -> bool:
+        raise NotImplementedError
+
+
+class Gridworld(Environment):
     def __init__(self, grid_size: int):
+        super().__init__(has_goal=True, has_obstacle=False)
         self._grid_size = grid_size
 
         self._episode_length = 0
@@ -89,8 +111,9 @@ class Gridworld(gym.Env):
         return self.total_observation
 
 
-class SimpleMaze(gym.Env):
+class SimpleMaze(Environment):
     def __init__(self, grid_size: int):
+        super().__init__(has_goal=True, has_obstacle=True)
         self._grid_size = grid_size
 
         self.episode_length = 0
@@ -235,13 +258,14 @@ class DictionaryWrapper(gym.ObservationWrapper):
         return {"obs": observation}
 
 
-class CartPoleDictionary(gym.Env):
-    def __init__(self):
+class CartPoleDictionary(Environment):
+    def __init__(self, steps_considered_solved: int = 100):
+        super().__init__(has_goal=False, has_obstacle=False)
         cart_pole = gym.make("CartPole-v0")
         self.env = DictionaryWrapper(cart_pole)
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
-        self.steps_considered_solved = 100
+        self.steps_considered_solved = steps_considered_solved
         self.episode_length = 0
 
     @property

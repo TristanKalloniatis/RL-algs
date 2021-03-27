@@ -178,8 +178,12 @@ class SingleEnvBuffer:
         return len(self.buffer)
 
     @property
-    def filled(self) -> int:
+    def filled(self) -> bool:
         return len(self) > self._capacity
+
+    @property
+    def ready_to_sample(self) -> bool:
+        return len(self) > self._batch_size
 
     def add_transition(self, transition: SingleEnvTransition):
         if self.filled:
@@ -196,7 +200,7 @@ class SingleEnvBuffer:
             self.num_episodes += 1
             self._episode_buffer.flush()
 
-    def sample(self) -> Dict[Optional[Tensor]]:
+    def sample(self) -> Dict[str, Optional[Tensor]]:
         samples = random.sample(self.buffer, self._batch_size)
         obs = tensor(
             np.stack([x.obs for x in samples]), device=self.device_name
@@ -421,6 +425,10 @@ class MultiEnvBuffer:
     def filled(self) -> bool:
         return len(self) > self._capacity
 
+    @property
+    def ready_to_sample(self) -> bool:
+        return len(self) > self._batch_size
+
     def add_transition(self, transition: SingleEnvTransition):
         if self.filled:
             self.buffer[self._buffer_write_position] = transition
@@ -437,7 +445,7 @@ class MultiEnvBuffer:
                 self.num_episodes += 1
                 self._episode_buffer[env].flush()
 
-    def sample(self) -> Dict[Optional[Tensor]]:
+    def sample(self) -> Dict[str, Optional[Tensor]]:
         samples = random.sample(self.buffer, self._batch_size)
         obs = tensor(
             np.stack([x.obs for x in samples]), device=self.device_name
