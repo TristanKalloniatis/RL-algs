@@ -49,8 +49,20 @@ class AdvantageActorCritic(Agent):
             actor_entropy = policy.entropy().mean()
             advantage = batch["episode_return"] - value.detach()
             critic_loss = self.loss_function(value, batch["episode_return"])
-            actor_loss = -log_prob * advantage * torch.pow(torch.tensor(self.gamma, device=self.device), batch["timestep"]).mean()
-            loss = self.loss_manager.loss({"actor_loss": actor_loss, "critic_loss": critic_loss, "actor_entropy": actor_entropy})
+            actor_loss = (
+                -log_prob
+                * advantage
+                * torch.pow(
+                    torch.tensor(self.gamma, device=self.device), batch["timestep"]
+                ).mean()
+            )
+            loss = self.loss_manager.loss(
+                {
+                    "actor_loss": actor_loss,
+                    "critic_loss": critic_loss,
+                    "actor_entropy": actor_entropy,
+                }
+            )
             self.optim.zero_grad()
             loss.backward()
             self.optim.step()

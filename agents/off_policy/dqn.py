@@ -6,7 +6,7 @@ from policies import policy
 import torch
 
 
-class DQN(Agent):
+class DeepQualityNetwork(Agent):
     def __init__(
         self,
         hidden_size: int,

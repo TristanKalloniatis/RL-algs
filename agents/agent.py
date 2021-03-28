@@ -2,6 +2,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import torch
 
+
 class Agent:
     def __init__(self, env, device_name: str):
         self.env = env
@@ -64,8 +65,6 @@ class Agent:
 
     def learn_on_batch(self) -> Dict[str, float]:
         raise NotImplementedError
-
-
 
     def evaluate(self, episodes: int) -> float:
         return float(np.mean([self.play_episode() for _ in range(episodes)]))

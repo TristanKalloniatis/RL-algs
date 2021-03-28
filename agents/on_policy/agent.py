@@ -67,4 +67,4 @@ class Agent(agent.Agent):
 
     def train(self, episodes: int):
         while self.buffer.num_episodes < episodes:
-            self.train_loop()  # todo: record losses and return somewhere
+            self.train_loop()  # todo: record losses and return somewhere?
