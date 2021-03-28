@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from typing import Optional, Dict, Any, List
 from common.multiprocessing_env import SubprocVecEnv
+from losses.multi_loss import LossManager
 
 
 def make_envs(env_name: str, env_fn, env_kwargs):
@@ -29,10 +30,14 @@ class Agent:
         batch_size: int,
         use_hindsight: bool,
         optim_steps: int,
+        loss_names: List[str],
+        loss_weight: float,
+        loss_epsilon: float,
+
     ):
-        self.network = OffPolicyNetworkFactory(network, polyak_weight)
-        self.network.synchronise(use_polyak=False)
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
+        self.network = OffPolicyNetworkFactory(network.to(self.device), polyak_weight)
+        self.network.synchronise(use_polyak=False)
         self.env = env_fn(env_name, **env_kwargs)
         self.envs = SubprocVecEnv(
             [make_envs(env_name, env_fn, env_kwargs) for _ in range(num_envs)]
@@ -52,13 +57,18 @@ class Agent:
         self.optim = torch.optim.Adam(self.network.online_network.parameters())
         self.optim_steps = optim_steps
         self.losses_by_type: Dict[str, List[float]] = {}
+        self.loss_manager = LossManager(loss_names, loss_weight, loss_epsilon)
 
     @property
     def num_episodes_trained(self) -> int:
         return self.buffer.num_episodes
 
-    def prepare_state(self, state: Dict[str, np.ndarray]) -> List[torch.Tensor]:
-        obs = torch.tensor(state["obs"], device=self.device).float()
+    def prepare_state(
+        self, state: Dict[str, np.ndarray], use_next: bool = False
+    ) -> List[torch.Tensor]:
+        obs = torch.tensor(
+            state["next_obs"] if use_next else state["obs"], device=self.device
+        ).float()
         if obs.ndim == len(self.env.observation_space["obs"].shape):
             obs = obs.unsqueeze(0)
         ret = [obs]
@@ -68,7 +78,29 @@ class Agent:
                 goal = goal.unsqueeze(0)
             ret.append(goal)
         if self.env.has_obstacle:
-            obstacle = torch.tensor(state["obstacle"], device=self.device).float()
+            obstacle = torch.tensor(
+                state["next_obstacle"] if use_next else state["obstacle"],
+                device=self.device,
+            ).float()
+            if obstacle.ndim == len(self.env.observation_space["obstacle"].shape):
+                obstacle = obstacle.unsqueeze(0)
+            ret.append(obstacle)
+        return ret
+
+    def prepare_state_from_batch(
+        self, batch: Dict[str, torch.Tensor], use_next: bool = False
+    ) -> List[torch.Tensor]:
+        obs = batch["next_obs"] if use_next else batch["obs"]
+        if obs.ndim == len(self.env.observation_space["obs"].shape):
+            obs = obs.unsqueeze(0)
+        ret = [obs]
+        if self.env.has_goal:
+            goal = batch["goal"]
+            if goal.ndim == len(self.env.observation_space["goal"].shape):
+                goal = goal.unsqueeze(0)
+            ret.append(goal)
+        if self.env.has_obstacle:
+            obstacle = batch["next_obstacle"] if use_next else batch["obstacle"]
             if obstacle.ndim == len(self.env.observation_space["obstacle"].shape):
                 obstacle = obstacle.unsqueeze(0)
             ret.append(obstacle)
@@ -82,7 +114,7 @@ class Agent:
         state = self.env.reset()
         while not done:
             with torch.no_grad():
-                action = self.select_action(state)
+                action = self.select_action(state)[0]
             state, _, done, _ = self.env.step(action)
         return self.env.solved
 
@@ -92,7 +124,7 @@ class Agent:
     def sample(self) -> Dict[str, Optional[torch.Tensor]]:
         return self.buffer.sample()
 
-    def learn_on_batch(self) -> Dict[str, float]:
+    def learn_on_batch(self):
         raise NotImplementedError
 
     def train_on_batch(self):
@@ -113,4 +145,5 @@ class Agent:
             self.buffer.observe(transition)
             state = next_state
             if self.buffer.ready_to_sample:
-                self.train_on_batch()
+                for _ in range(self.optim_steps):
+                    self.train_on_batch()

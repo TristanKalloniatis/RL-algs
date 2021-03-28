@@ -7,7 +7,7 @@ class QNetwork(torch.nn.Module):
     def __init__(self, env: Environment, hidden_size: int):
         super().__init__()
         self.feature_map = torch.nn.Sequential(
-            torch.nn.Linear(env.observation_space.shape[0], hidden_size),
+            torch.nn.Linear(env.observation_space["obs"].shape[0], hidden_size),
             torch.nn.ReLU(),
         )
         num_feature_maps = 1 + sum([env.has_goal, env.has_obstacle])
