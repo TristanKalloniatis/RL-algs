@@ -1,21 +1,14 @@
 from buffers.buffer import MultiEnvTransition, MultiEnvBuffer
 from networks.off_policy import OffPolicyNetworkFactory
 import torch
-import numpy as np
 from typing import Optional, Dict, Any, List
 from common.multiprocessing_env import SubprocVecEnv
 from losses.multi_loss import LossManager
+from environments.env_constructor import make_envs
+from agents import agent
 
 
-def make_envs(env_name: str, env_fn, env_kwargs):
-    def _thunk():
-        env = env_fn(env_name, **env_kwargs)
-        return env
-
-    return _thunk
-
-
-class Agent:
+class Agent(agent.Agent):
     def __init__(
         self,
         network,
@@ -33,12 +26,12 @@ class Agent:
         loss_names: List[str],
         loss_weight: float,
         loss_epsilon: float,
-
     ):
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
         self.network = OffPolicyNetworkFactory(network.to(self.device), polyak_weight)
         self.network.synchronise(use_polyak=False)
         self.env = env_fn(env_name, **env_kwargs)
+        super().__init__(self.env, device_name)
         self.envs = SubprocVecEnv(
             [make_envs(env_name, env_fn, env_kwargs) for _ in range(num_envs)]
         )
@@ -59,73 +52,8 @@ class Agent:
         self.losses_by_type: Dict[str, List[float]] = {}
         self.loss_manager = LossManager(loss_names, loss_weight, loss_epsilon)
 
-    @property
-    def num_episodes_trained(self) -> int:
-        return self.buffer.num_episodes
-
-    def prepare_state(
-        self, state: Dict[str, np.ndarray], use_next: bool = False
-    ) -> List[torch.Tensor]:
-        obs = torch.tensor(
-            state["next_obs"] if use_next else state["obs"], device=self.device
-        ).float()
-        if obs.ndim == len(self.env.observation_space["obs"].shape):
-            obs = obs.unsqueeze(0)
-        ret = [obs]
-        if self.env.has_goal:
-            goal = torch.tensor(state["goal"], device=self.device).float()
-            if goal.ndim == len(self.env.observation_space["goal"].shape):
-                goal = goal.unsqueeze(0)
-            ret.append(goal)
-        if self.env.has_obstacle:
-            obstacle = torch.tensor(
-                state["next_obstacle"] if use_next else state["obstacle"],
-                device=self.device,
-            ).float()
-            if obstacle.ndim == len(self.env.observation_space["obstacle"].shape):
-                obstacle = obstacle.unsqueeze(0)
-            ret.append(obstacle)
-        return ret
-
-    def prepare_state_from_batch(
-        self, batch: Dict[str, torch.Tensor], use_next: bool = False
-    ) -> List[torch.Tensor]:
-        obs = batch["next_obs"] if use_next else batch["obs"]
-        if obs.ndim == len(self.env.observation_space["obs"].shape):
-            obs = obs.unsqueeze(0)
-        ret = [obs]
-        if self.env.has_goal:
-            goal = batch["goal"]
-            if goal.ndim == len(self.env.observation_space["goal"].shape):
-                goal = goal.unsqueeze(0)
-            ret.append(goal)
-        if self.env.has_obstacle:
-            obstacle = batch["next_obstacle"] if use_next else batch["obstacle"]
-            if obstacle.ndim == len(self.env.observation_space["obstacle"].shape):
-                obstacle = obstacle.unsqueeze(0)
-            ret.append(obstacle)
-        return ret
-
-    def select_action(self, state: Dict[str, np.ndarray]):
-        raise NotImplementedError
-
-    def play_episode(self) -> bool:
-        done = False
-        state = self.env.reset()
-        while not done:
-            with torch.no_grad():
-                action = self.select_action(state)[0]
-            state, _, done, _ = self.env.step(action)
-        return self.env.solved
-
-    def evaluate(self, episodes: int) -> float:
-        return float(np.mean([self.play_episode() for _ in range(episodes)]))
-
     def sample(self) -> Dict[str, Optional[torch.Tensor]]:
         return self.buffer.sample()
-
-    def learn_on_batch(self):
-        raise NotImplementedError
 
     def train_on_batch(self):
         losses = self.learn_on_batch()
@@ -135,7 +63,7 @@ class Agent:
 
     def train(self, episodes: int):
         state = self.envs.reset()
-        while self.num_episodes_trained < episodes:
+        while self.buffer.num_episodes < episodes:
             with torch.no_grad():
                 action = self.select_action(state)
             next_state, reward, done, _ = self.envs.step(action)

@@ -50,9 +50,9 @@ class DQN(Agent):
     def select_action(self, state: Dict[str, np.ndarray]) -> np.ndarray:
         state = self.prepare_state(state)
         q = self.network(state)
-        return self.sampler.sample(q, self.num_episodes_trained)
+        return self.sampler.sample(q, self.buffer.num_episodes)
 
-    def learn_on_batch(self):
+    def learn_on_batch(self) -> Dict[str, float]:
         batch = self.sample()
         state = self.prepare_state_from_batch(batch)
         next_state = self.prepare_state_from_batch(batch, use_next=True)
@@ -68,3 +68,4 @@ class DQN(Agent):
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
+        return {k: loss[k].item for k in loss.keys()}
