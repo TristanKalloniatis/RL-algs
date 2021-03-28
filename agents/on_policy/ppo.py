@@ -6,7 +6,7 @@ from typing import Dict, Any, List
 class ProximalPolicyOptimisation(Agent):
     def __init__(
         self,
-        network,
+        network, # todo: construct network in init
         device_name: str,
         env_name: str,
         num_envs: int,

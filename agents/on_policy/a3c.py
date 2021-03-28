@@ -1,12 +1,13 @@
 from agents.on_policy.agent import Agent
 import torch
+from networks.policy_network import ActorCriticNetwork
 from typing import Dict, Any, List
 
 
 class AdvantageActorCritic(Agent):
     def __init__(
         self,
-        network,
+        hidden_size: int,
         device_name: str,
         env_name: str,
         num_envs: int,
@@ -20,6 +21,8 @@ class AdvantageActorCritic(Agent):
         loss_weight: float,
         loss_epsilon: float,
     ):
+        env = env_fn(env_name, **env_kwargs)
+        network = ActorCriticNetwork(env, hidden_size)
         super().__init__(
             network,
             device_name,
