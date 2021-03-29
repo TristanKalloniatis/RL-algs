@@ -53,7 +53,7 @@ class Agent(agent.Agent):
         state = self.envs.reset()
         while not self.buffer.filled:
             with torch.no_grad():
-                action = self.select_action(state)
+                action = self.select_action(state, explore=True)
             next_state, reward, done, _ = self.envs.step(action)
             transition = MultiEnvTransition(
                 state, action, reward, next_state, done, self.gamma

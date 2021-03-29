@@ -55,10 +55,14 @@ class DeepQualityNetwork(Agent):
         self.sampler = sampler
         self.loss_function = torch.nn.SmoothL1Loss()
 
-    def select_action(self, state: Dict[str, np.ndarray]) -> np.ndarray:
+    def select_action(self, state: Dict[str, np.ndarray], explore: bool) -> np.ndarray:
         state = self.prepare_state(state)
         q = self.network(state)
-        return self.sampler.sample(q, self.buffer.num_episodes)
+        return (
+            self.sampler.sample(q, self.buffer.num_episodes)
+            if explore
+            else policy.GreedySampler().sample(q, self.buffer.num_episodes)
+        )
 
     def learn_on_batch(self):
         batch = self.sample()

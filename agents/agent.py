@@ -103,15 +103,15 @@ class Agent:
             ret.append(obstacle)
         return ret
 
-    def select_action(self, state: Dict[str, np.ndarray]):
+    def select_action(self, state: Dict[str, np.ndarray], explore: bool):
         raise NotImplementedError
 
-    def play_episode(self) -> bool:
+    def play_episode(self, explore: bool) -> bool:
         done = False
         state = self.env.reset()
         while not done:
             with torch.no_grad():
-                action = self.select_action(state)[0]
+                action = self.select_action(state, explore)[0]
             state, _, done, _ = self.env.step(action)
         return self.env.solved
 
@@ -119,7 +119,7 @@ class Agent:
         raise NotImplementedError
 
     def evaluate(self, episodes: int, return_value: bool = False) -> Optional[float]:
-        evaluation = float(np.mean([self.play_episode() for _ in range(episodes)]))
+        evaluation = float(np.mean([self.play_episode(explore=False) for _ in range(episodes)]))
         self.logger.write_log(
             "Performance over {0} episodes is {1}".format(episodes, evaluation)
         )

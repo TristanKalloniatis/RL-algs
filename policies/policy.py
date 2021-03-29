@@ -8,6 +8,11 @@ class QPolicySampler:
         raise NotImplementedError
 
 
+class GreedySampler(QPolicySampler):
+    def sample(self, q_values: torch.Tensor, num_episodes: int) -> np.ndarray:
+        return q_values.argmax(-1).cpu().numpy()
+
+
 class EpsilonGreedySampler(QPolicySampler):
     def __init__(self, epsilon_anneal_fn: Callable[[int], float]):
         self.epsilon_anneal_fn = epsilon_anneal_fn
