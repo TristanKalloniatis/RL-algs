@@ -20,7 +20,7 @@ class DuellingDQN(torch.nn.Module):
         features = self.combine_feature_map(input_features)
         value = self.value_map(features)
         advantage = self.advantage_map(features)
-        return value + advantage - advantage.mean(-1)
+        return value + advantage - advantage.mean(-1).unsqueeze(-1)
 
 
 class QNetwork(DuellingDQN):

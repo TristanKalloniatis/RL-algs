@@ -2,12 +2,14 @@ from typing import Dict, List
 from environments.environments import Environment
 import numpy as np
 import torch
+from log_utils.log_utils import CustomLogger
 
 
 class Agent:
-    def __init__(self, env: Environment, device_name: str):
+    def __init__(self, env: Environment, device_name: str, logger: CustomLogger):
         self.env = env
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
+        self.logger = logger
 
     def prepare_state(
         self, state: Dict[str, np.ndarray], use_next: bool = False
@@ -67,8 +69,12 @@ class Agent:
     def learn_on_batch(self) -> Dict[str, float]:
         raise NotImplementedError
 
-    def evaluate(self, episodes: int) -> float:
-        return float(np.mean([self.play_episode() for _ in range(episodes)]))
+    def evaluate(self, episodes: int):
+        self.logger.write_log(
+            "Performance over {0} episodes is {1}".format(
+                episodes, (np.mean([self.play_episode() for _ in range(episodes)]))
+            )
+        )
 
     def train(self, episodes: int):
         raise NotImplementedError

@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from typing import Callable
 
 
 class QPolicySampler:
@@ -8,7 +9,7 @@ class QPolicySampler:
 
 
 class EpsilonGreedySampler(QPolicySampler):
-    def __init__(self, epsilon_anneal_fn):
+    def __init__(self, epsilon_anneal_fn: Callable[[int], float]):
         self.epsilon_anneal_fn = epsilon_anneal_fn
 
     def sample(self, q_values: torch.Tensor, num_episodes: int) -> np.ndarray:
@@ -20,7 +21,7 @@ class EpsilonGreedySampler(QPolicySampler):
 
 
 class BoltzmanSampler(QPolicySampler):
-    def __init__(self, temperature_anneal_fn):
+    def __init__(self, temperature_anneal_fn: Callable[[int], float]):
         self.temperature_anneal_fn = temperature_anneal_fn
 
     def sample(self, q_values: torch.Tensor, num_episodes: int) -> np.ndarray:

@@ -1,5 +1,6 @@
 from agents.off_policy.agent import Agent
 from typing import Dict, Any
+from log_utils.log_utils import CustomLogger
 
 
 class SoftActorCritic(Agent):
@@ -19,6 +20,8 @@ class SoftActorCritic(Agent):
         optim_steps: int,
         loss_weight: float,
         loss_epsilon: float,
+        logger: CustomLogger,
+        log_freq: int,
     ):
         super().__init__(
             network,
@@ -36,4 +39,6 @@ class SoftActorCritic(Agent):
             ["value_loss", "q_loss", "policy_loss"],
             loss_weight,
             loss_epsilon,
+            logger,
+            log_freq,
         )

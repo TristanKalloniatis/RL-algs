@@ -2,6 +2,7 @@ from agents.on_policy.agent import Agent
 import torch
 from networks.policy_network import ActorCriticNetwork
 from typing import Dict, Any, List
+from log_utils.log_utils import CustomLogger
 
 
 class AdvantageActorCritic(Agent):
@@ -20,6 +21,8 @@ class AdvantageActorCritic(Agent):
         optim_steps: int,
         loss_weight: float,
         loss_epsilon: float,
+        logger: CustomLogger,
+        log_freq: int,
     ):
         env = env_fn(env_name, **env_kwargs)
         network = ActorCriticNetwork(env, hidden_size)
@@ -38,12 +41,13 @@ class AdvantageActorCritic(Agent):
             ["actor_loss", "critic_loss", "actor_entropy"],
             loss_weight,
             loss_epsilon,
+            logger,
+            log_freq,
         )
         self.loss_function = torch.nn.SmoothL1Loss()
 
-    def train_loop(self) -> Dict[str, List[float]]:
+    def train_loop(self):
         self.collect_experience()
-        losses = {k: [] for k in self.loss_manager._loss_names}
         for _ in range(self.optim_steps):
             batch = self.buffer.sample()
             state = self.prepare_state_from_batch(batch)
@@ -69,6 +73,3 @@ class AdvantageActorCritic(Agent):
             self.optim.zero_grad()
             loss.backward()
             self.optim.step()
-            for k in loss.keys():
-                losses[k].append(loss[k])
-        return losses

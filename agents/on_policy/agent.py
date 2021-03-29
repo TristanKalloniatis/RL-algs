@@ -6,6 +6,7 @@ from losses.multi_loss import LossManager
 from typing import Dict, List, Any, Callable
 from environments.environments import Environment
 from agents import agent
+from log_utils.log_utils import CustomLogger
 
 
 class Agent(agent.Agent):
@@ -25,11 +26,13 @@ class Agent(agent.Agent):
         loss_names: List[str],
         loss_weight: float,
         loss_epsilon: float,
+        logger: CustomLogger,
+        log_freq: int,
     ):
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
         self.network = network.to(self.device)
         self.env = env_fn(env_name, **env_kwargs)
-        super().__init__(self.env, device_name)
+        super().__init__(self.env, device_name, logger)
         self.envs = SubprocVecEnv(
             [make_envs(env_name, env_fn, env_kwargs) for _ in range(num_envs)]
         )
@@ -47,8 +50,8 @@ class Agent(agent.Agent):
         self.gamma = gamma
         self.optim = torch.optim.Adam(self.network.parameters())
         self.optim_steps = optim_steps
-        self.losses_by_type: Dict[str, List[float]] = {}
         self.loss_manager = LossManager(loss_names, loss_weight, loss_epsilon)
+        self.log_freq = log_freq
 
     def collect_experience(self):
         self.buffer.flush()
@@ -68,4 +71,8 @@ class Agent(agent.Agent):
 
     def train(self, episodes: int):
         while self.buffer.num_episodes < episodes:
+            if self.buffer.num_episodes % self.log_freq == 0:
+                self.logger.write_log(
+                    "Seen {0} episodes so far".format(self.buffer.num_episodes)
+                )
             self.train_loop()  # todo: record losses and return somewhere?
