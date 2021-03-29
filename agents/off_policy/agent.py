@@ -1,21 +1,22 @@
 from buffers.buffer import MultiEnvTransition, MultiEnvBuffer
 from networks.off_policy import OffPolicyNetworkFactory
 import torch
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Callable
 from common.multiprocessing_env import SubprocVecEnv
 from losses.multi_loss import LossManager
 from environments.env_constructor import make_envs
+from environments.environments import Environment
 from agents import agent
 
 
 class Agent(agent.Agent):
     def __init__(
         self,
-        network,
+        network: torch.nn.Module,
         device_name: str,
         env_name: str,
         num_envs: int,
-        env_fn,
+        env_fn: Callable[[str, Dict[str, Any]], Environment],
         env_kwargs: Dict[str, Any],
         polyak_weight: float,
         gamma: float,

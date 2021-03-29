@@ -5,7 +5,7 @@ from typing import Dict, Any
 class SoftActorCritic(Agent):
     def __init__(
         self,
-        network, # todo: construct network in init
+        network,  # todo: construct network in init
         device_name: str,
         env_name: str,
         num_envs: int,

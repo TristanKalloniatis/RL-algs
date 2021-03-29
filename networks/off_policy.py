@@ -10,9 +10,12 @@ class OffPolicyNetworkFactory:
         self.target_network = deepcopy(network)
         self.polyak_weight = polyak_weight
 
-
     def __call__(self, inputs: List[Tensor], use_online: bool = True) -> Tensor:
-        return self.online_network(inputs) if use_online else self.target_network(inputs).detach()
+        return (
+            self.online_network(inputs)
+            if use_online
+            else self.target_network(inputs).detach()
+        )
 
     def synchronise(self, use_polyak: bool = True):
         weight = self.polyak_weight if use_polyak else 1.0

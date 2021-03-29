@@ -1,10 +1,11 @@
-from typing import Dict, List, Optional
+from typing import Dict, List
+from environments.environments import Environment
 import numpy as np
 import torch
 
 
 class Agent:
-    def __init__(self, env, device_name: str):
+    def __init__(self, env: Environment, device_name: str):
         self.env = env
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
 
