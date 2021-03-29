@@ -20,10 +20,10 @@ class ActorCritic(torch.nn.Module):
     ) -> List[Union[torch.Tensor, torch.distributions.Categorical]]:
         input_features = torch.cat([self.feature_map(x) for x in inputs], dim=-1)
         features = self.combine_feature_map(input_features)
-        value = self.value_map(features)
+        value = self.value_map(features).squeeze()
         logits = self.policy_logit_map(features)
         policy = torch.distributions.Categorical(logits=logits)
-        return [value, policy]
+        return [policy, value]
 
 
 class ActorCriticNetwork(ActorCritic):

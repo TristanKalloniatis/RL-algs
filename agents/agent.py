@@ -54,7 +54,7 @@ class Agent:
         self.gamma = gamma
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
         self.logger = logger
-        self.evaluations: List[List[float]] = []
+        self.evaluations: Dict[int, List[float]] = {}
         self.evaluate_episodes = evaluate_episodes
         self.optim_steps = optim_steps
         self.loss_manager = LossManager(loss_names, loss_weight, loss_epsilon)
@@ -147,14 +147,14 @@ class Agent:
         plt.cla()
         if self.evaluate_episodes:
             plt.plot(
-                range(0, self.buffer.num_episodes, self.log_freq),
-                [e[0] for e in self.evaluations],
+                self.evaluations.keys(),
+                [e[0] for e in self.evaluations.values()],
                 label="Success rate",
             )
             if self.env.has_numerical_evaluation:
                 plt.plot(
-                    range(0, self.buffer.num_episodes, self.log_freq),
-                    [e[1] for e in self.evaluations],
+                    self.evaluations.keys(),
+                    [e[1] for e in self.evaluations.values()],
                     label="Performance rate",
                 )
             plt.xlabel("Train episodes")

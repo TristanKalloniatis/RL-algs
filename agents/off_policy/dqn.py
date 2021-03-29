@@ -66,7 +66,7 @@ class DeepQualityNetwork(Agent):
 
     def learn_on_batch(self):
         batch = self.sample()
-        state = self.prepare_state_from_batch(batch)
+        state = self.prepare_state_from_batch(batch, use_next=False)
         next_state = self.prepare_state_from_batch(batch, use_next=True)
         q = self.network(state, use_online=True)
         with torch.no_grad():

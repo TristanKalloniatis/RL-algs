@@ -62,16 +62,18 @@ class Agent(agent.Agent):
     def train(self, episodes: int):
         state = self.envs.reset()
         write_log_flag = True
+        next_eval_episode = 0
         while self.buffer.num_episodes < episodes:
+            if self.buffer.num_episodes >= next_eval_episode and self.evaluate_episodes:
+                self.evaluations[self.buffer.num_episodes] = self.evaluate(
+                    self.evaluate_episodes, return_value=True
+                )
+                next_eval_episode += self.log_freq
             if self.buffer.num_episodes % self.log_freq == 0:
                 if write_log_flag:
                     self.logger.write_log(
                         "Seen {0} episodes so far".format(self.buffer.num_episodes)
                     )
-                    if self.evaluate_episodes:
-                        self.evaluations.append(
-                            self.evaluate(self.evaluate_episodes, return_value=True)
-                        )
                     write_log_flag = False
             else:
                 write_log_flag = True
