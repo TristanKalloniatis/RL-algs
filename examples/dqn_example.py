@@ -1,5 +1,5 @@
 from agents.off_policy.dqn import DeepQualityNetwork
-from policies.policy import EpsilonGreedySampler
+from samplers.samplers import EpsilonGreedySampler
 from environments import environments
 from log_utils.log_utils import CustomLogger
 

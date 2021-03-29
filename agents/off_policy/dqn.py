@@ -2,7 +2,7 @@ from agents.off_policy.agent import Agent
 from typing import Dict, Any, Callable, Optional
 from networks.q_network import QNetwork
 import numpy as np
-from policies import policy
+from samplers import samplers
 from environments.environments import Environment
 import torch
 from log_utils.log_utils import CustomLogger
@@ -12,7 +12,7 @@ class DeepQualityNetwork(Agent):
     def __init__(
         self,
         hidden_size: int,
-        sampler: policy.QPolicySampler,
+        sampler: samplers.QPolicySampler,
         device_name: str,
         env_name: str,
         num_envs: int,
@@ -61,7 +61,7 @@ class DeepQualityNetwork(Agent):
         return (
             self.sampler.sample(q, self.buffer.num_episodes)
             if explore
-            else policy.GreedySampler().sample(q, self.buffer.num_episodes)
+            else samplers.GreedySampler().sample(q, self.buffer.num_episodes)
         )
 
     def learn_on_batch(self):
