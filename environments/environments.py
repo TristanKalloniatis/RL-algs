@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 gym.envs.register(id="Gridworld-v0", entry_point="environments.environments:Gridworld")
 gym.envs.register(
@@ -17,11 +17,16 @@ class Environment(gym.Env):
         super().__init__()
         self.has_goal = has_goal
         self.has_obstacle = has_obstacle
+        self.has_numerical_evaluation = False
         self.episode_length = 0
 
     @property
     def solved(self) -> bool:
         raise NotImplementedError
+
+    @property
+    def numerical_evaluation(self) -> Optional[float]:
+        return None
 
 
 class Gridworld(Environment):
@@ -266,11 +271,16 @@ class CartPoleDictionary(Environment):
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
         self.steps_considered_solved = steps_considered_solved
+        self.has_numerical_evaluation = True
         self.episode_length = 0
 
     @property
     def solved(self):
         return self.episode_length >= self.steps_considered_solved
+
+    @property
+    def numerical_evaluation(self) -> Optional[float]:
+        return self.episode_length / 200.0
 
     def set_steps_considered_solved(self, step_considered_solved: int):
         self.steps_considered_solved = step_considered_solved

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable, Any, Union
 from common.multiprocessing_env import SubprocVecEnv
 from environments.environments import Environment
 import numpy as np
@@ -54,7 +54,7 @@ class Agent:
         self.gamma = gamma
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
         self.logger = logger
-        self.evaluations: List[float] = []
+        self.evaluations: List[List[float]] = []
         self.evaluate_episodes = evaluate_episodes
         self.optim_steps = optim_steps
         self.loss_manager = LossManager(loss_names, loss_weight, loss_epsilon)
@@ -106,25 +106,33 @@ class Agent:
     def select_action(self, state: Dict[str, np.ndarray], explore: bool):
         raise NotImplementedError
 
-    def play_episode(self, explore: bool) -> bool:
+    def play_episode(self, explore: bool) -> List[Union[bool, Optional[float]]]:
         done = False
         state = self.env.reset()
         while not done:
             with torch.no_grad():
                 action = self.select_action(state, explore)[0]
             state, _, done, _ = self.env.step(action)
-        return self.env.solved
+        return [self.env.solved, self.env.numerical_evaluation]
 
     def learn_on_batch(self) -> Dict[str, float]:
         raise NotImplementedError
 
-    def evaluate(self, episodes: int, return_value: bool = False) -> Optional[float]:
-        evaluation = float(np.mean([self.play_episode(explore=False) for _ in range(episodes)]))
+    def evaluate(
+        self, episodes: int, return_value: bool = False
+    ) -> List[Optional[float]]:
+        results = [self.play_episode(explore=False) for _ in range(episodes)]
+        success = float(np.mean([result[0] for result in results]))
+        performance = (
+            float(np.mean([result[1] for result in results]))
+            if self.env.has_numerical_evaluation
+            else None
+        )
         self.logger.write_log(
-            "Performance over {0} episodes is {1}".format(episodes, evaluation)
+            "Success rate over {0} episodes is {1}".format(episodes, success)
         )
         if return_value:
-            return evaluation
+            return [success, performance]
 
     def train(self, episodes: int):
         raise NotImplementedError
@@ -132,11 +140,24 @@ class Agent:
     def plot(self):
         for loss_name in self.loss_manager.losses.keys():
             plt.plot(self.loss_manager.losses[loss_name], label=loss_name)
+        plt.xlabel("SGD steps")
         plt.legend()
         plt.tight_layout()
         plt.savefig("plots/losses/{0}.png".format(self.logger.name))
         plt.cla()
-        plt.plot(self.evaluations, label="Success rate")
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig("plots/evaluations/{0}.png".format(self.logger.name))
+        if self.evaluate_episodes:
+            plt.plot(
+                range(0, self.buffer.num_episodes, self.log_freq),
+                [e[0] for e in self.evaluations],
+                label="Success rate",
+            )
+            if self.env.has_numerical_evaluation:
+                plt.plot(
+                    range(0, self.buffer.num_episodes, self.log_freq),
+                    [e[1] for e in self.evaluations],
+                    label="Performance rate",
+                )
+            plt.xlabel("Train episodes")
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig("plots/evaluations/{0}.png".format(self.logger.name))

@@ -25,5 +25,5 @@ agent = DeepQualityNetwork(
     evaluate_episodes=10,
 )
 
-agent.train(500)
+agent.train(200)
 agent.plot()

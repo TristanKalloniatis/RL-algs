@@ -68,7 +68,7 @@ class DeepQualityNetwork(Agent):
         batch = self.sample()
         state = self.prepare_state_from_batch(batch)
         next_state = self.prepare_state_from_batch(batch, use_next=True)
-        q = self.network(state)
+        q = self.network(state, use_online=True)
         with torch.no_grad():
             next_q = self.network(next_state, use_online=False)
         target = batch["reward"] + self.gamma * torch.where(
