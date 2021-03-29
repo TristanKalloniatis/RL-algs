@@ -8,11 +8,12 @@ if not os.path.exists("log_files/"):
 
 class CustomLogger:
     def __init__(self, log_filename: str):
+        self.name = "{0}_{1}".format(log_filename, datetime.now())
         logger = logging.getLogger()
         logging.basicConfig(level=logging.INFO, stream=stdout)
         logger.addHandler(
             logging.FileHandler(
-                "log_files/log_{0}_{1}.txt".format(log_filename, datetime.now())
+                "log_files/{0}.txt".format(self.name)
             )
         )
         self.logger = logger

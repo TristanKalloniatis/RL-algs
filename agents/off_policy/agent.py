@@ -1,10 +1,7 @@
-from buffers.buffer import MultiEnvTransition, MultiEnvBuffer
+from buffers.buffer import MultiEnvTransition
 from networks.off_policy import OffPolicyNetworkFactory
 import torch
 from typing import Optional, Dict, Any, List, Callable
-from common.multiprocessing_env import SubprocVecEnv
-from losses.multi_loss import LossManager
-from environments.env_constructor import make_envs
 from environments.environments import Environment
 from agents import agent
 from log_utils.log_utils import CustomLogger
@@ -30,31 +27,30 @@ class Agent(agent.Agent):
         loss_epsilon: float,
         logger: CustomLogger,
         log_freq: int,
+        evaluate_episodes: Optional[int],
     ):
-        self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
-        self.network = OffPolicyNetworkFactory(network.to(self.device), polyak_weight)
-        self.network.synchronise(use_polyak=False)
-        self.env = env_fn(env_name, **env_kwargs)
-        super().__init__(self.env, device_name, logger)
-        self.envs = SubprocVecEnv(
-            [make_envs(env_name, env_fn, env_kwargs) for _ in range(num_envs)]
-        )
-        self.use_hindsight = use_hindsight if self.env.has_goal else False
-        self.buffer = MultiEnvBuffer(
+        super().__init__(
+            env_name,
             num_envs,
+            env_fn,
+            env_kwargs,
+            device_name,
+            logger,
+            evaluate_episodes,
+            gamma,
             capacity,
             batch_size,
-            self.use_hindsight,
-            self.env.has_goal,
-            self.env.has_obstacle,
-            gamma,
-            device_name,
+            use_hindsight,
+            optim_steps,
+            loss_names,
+            loss_weight,
+            loss_epsilon,
+            log_freq,
         )
-        self.gamma = gamma
+        self.network = OffPolicyNetworkFactory(network.to(self.device), polyak_weight)
+        self.network.synchronise(use_polyak=False)
+
         self.optim = torch.optim.Adam(self.network.online_network.parameters())
-        self.optim_steps = optim_steps
-        self.loss_manager = LossManager(loss_names, loss_weight, loss_epsilon)
-        self.log_freq = log_freq
 
     def sample(self) -> Dict[str, Optional[torch.Tensor]]:
         return self.buffer.sample()
@@ -72,6 +68,10 @@ class Agent(agent.Agent):
                     self.logger.write_log(
                         "Seen {0} episodes so far".format(self.buffer.num_episodes)
                     )
+                    if self.evaluate_episodes:
+                        self.evaluations.append(
+                            self.evaluate(self.evaluate_episodes, return_value=True)
+                        )
                     write_log_flag = False
             else:
                 write_log_flag = True

@@ -1,7 +1,7 @@
 from agents.on_policy.agent import Agent
 import torch
 from networks.policy_network import ActorCriticNetwork
-from typing import Dict, Any, List
+from typing import Dict, Any, Optional
 from log_utils.log_utils import CustomLogger
 
 
@@ -23,6 +23,7 @@ class AdvantageActorCritic(Agent):
         loss_epsilon: float,
         logger: CustomLogger,
         log_freq: int,
+        evaluate_episodes: Optional[int],
     ):
         env = env_fn(env_name, **env_kwargs)
         network = ActorCriticNetwork(env, hidden_size)
@@ -43,6 +44,7 @@ class AdvantageActorCritic(Agent):
             loss_epsilon,
             logger,
             log_freq,
+            evaluate_episodes,
         )
         self.loss_function = torch.nn.SmoothL1Loss()
 

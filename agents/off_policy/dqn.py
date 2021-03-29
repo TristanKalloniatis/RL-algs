@@ -1,5 +1,5 @@
 from agents.off_policy.agent import Agent
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Optional
 from networks.q_network import QNetwork
 import numpy as np
 from policies import policy
@@ -28,6 +28,7 @@ class DeepQualityNetwork(Agent):
         loss_epsilon: float,
         logger: CustomLogger,
         log_freq: int,
+        evaluate_episodes: Optional[int],
     ):
         env = env_fn(env_name, **env_kwargs)
         network = QNetwork(env, hidden_size)
@@ -49,6 +50,7 @@ class DeepQualityNetwork(Agent):
             loss_epsilon,
             logger,
             log_freq,
+            evaluate_episodes,
         )
         self.sampler = sampler
         self.loss_function = torch.nn.SmoothL1Loss()

@@ -21,8 +21,9 @@ agent = DeepQualityNetwork(
     loss_weight=0.05,
     loss_epsilon=1e-6,
     logger=logger,
-    log_freq=50,
+    log_freq=10,
+    evaluate_episodes=10,
 )
-agent.evaluate(100)
-agent.train(200)
-agent.evaluate(100)
+
+agent.train(500)
+agent.plot()

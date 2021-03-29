@@ -1,15 +1,64 @@
-from typing import Dict, List
+from typing import Dict, List, Optional, Callable, Any
+from common.multiprocessing_env import SubprocVecEnv
 from environments.environments import Environment
 import numpy as np
 import torch
+from losses.multi_loss import LossManager
+from environments.env_constructor import make_envs
 from log_utils.log_utils import CustomLogger
+from buffers.buffer import MultiEnvBuffer
+import matplotlib.pyplot as plt
+import os
+
+if not os.path.exists("plots/"):
+    os.makedirs("plots/losses")
+    os.makedirs("plots/evaluations")
 
 
 class Agent:
-    def __init__(self, env: Environment, device_name: str, logger: CustomLogger):
-        self.env = env
+    def __init__(
+        self,
+        env_name: str,
+        num_envs: int,
+        env_fn: Callable[[str, Dict[str, Any]], Environment],
+        env_kwargs: Dict[str, Any],
+        device_name: str,
+        logger: CustomLogger,
+        evaluate_episodes: Optional[int],
+        gamma: float,
+        capacity: int,
+        batch_size: int,
+        use_hindsight: bool,
+        optim_steps: int,
+        loss_names: List[str],
+        loss_weight: float,
+        loss_epsilon: float,
+        log_freq: int,
+    ):
+
+        self.env = env_fn(env_name, **env_kwargs)
+        self.envs = SubprocVecEnv(
+            [make_envs(env_name, env_fn, env_kwargs) for _ in range(num_envs)]
+        )
+        self.use_hindsight = use_hindsight if self.env.has_goal else False
+        self.buffer = MultiEnvBuffer(
+            num_envs,
+            capacity,
+            batch_size,
+            self.use_hindsight,
+            self.env.has_goal,
+            self.env.has_obstacle,
+            gamma,
+            device_name,
+        )
+        self.gamma = gamma
         self.device = torch.device(device_name if torch.cuda.is_available() else "cpu")
         self.logger = logger
+        self.evaluations: List[float] = []
+        self.evaluate_episodes = evaluate_episodes
+        self.optim_steps = optim_steps
+        self.loss_manager = LossManager(loss_names, loss_weight, loss_epsilon)
+        self.log_freq = log_freq
 
     def prepare_state(
         self, state: Dict[str, np.ndarray], use_next: bool = False
@@ -69,12 +118,25 @@ class Agent:
     def learn_on_batch(self) -> Dict[str, float]:
         raise NotImplementedError
 
-    def evaluate(self, episodes: int):
+    def evaluate(self, episodes: int, return_value: bool = False) -> Optional[float]:
+        evaluation = float(np.mean([self.play_episode() for _ in range(episodes)]))
         self.logger.write_log(
-            "Performance over {0} episodes is {1}".format(
-                episodes, (np.mean([self.play_episode() for _ in range(episodes)]))
-            )
+            "Performance over {0} episodes is {1}".format(episodes, evaluation)
         )
+        if return_value:
+            return evaluation
 
     def train(self, episodes: int):
         raise NotImplementedError
+
+    def plot(self):
+        for loss_name in self.loss_manager.losses.keys():
+            plt.plot(self.loss_manager.losses[loss_name], label=loss_name)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("plots/losses/{0}.png".format(self.logger.name))
+        plt.cla()
+        plt.plot(self.evaluations, label="Success rate")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("plots/evaluations/{0}.png".format(self.logger.name))
