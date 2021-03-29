@@ -70,9 +70,14 @@ class Agent(agent.Agent):
         raise NotImplementedError
 
     def train(self, episodes: int):
+        write_log_flag = True
         while self.buffer.num_episodes < episodes:
             if self.buffer.num_episodes % self.log_freq == 0:
-                self.logger.write_log(
-                    "Seen {0} episodes so far".format(self.buffer.num_episodes)
-                )
+                if write_log_flag:
+                    self.logger.write_log(
+                        "Seen {0} episodes so far".format(self.buffer.num_episodes)
+                    )
+                    write_log_flag = False
+            else:
+                write_log_flag = True
             self.train_loop()  # todo: record losses and return somewhere?

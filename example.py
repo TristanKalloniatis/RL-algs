@@ -4,7 +4,6 @@ from environments import environments
 from log_utils.log_utils import CustomLogger
 
 logger = CustomLogger("example")
-
 agent = DeepQualityNetwork(
     hidden_size=64,
     sampler=EpsilonGreedySampler(lambda x: 0.05),
@@ -24,7 +23,6 @@ agent = DeepQualityNetwork(
     logger=logger,
     log_freq=50,
 )
-
 agent.evaluate(100)
-agent.train(1000)
+agent.train(200)
 agent.evaluate(100)

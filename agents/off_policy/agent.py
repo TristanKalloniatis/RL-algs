@@ -65,11 +65,16 @@ class Agent(agent.Agent):
 
     def train(self, episodes: int):
         state = self.envs.reset()
+        write_log_flag = True
         while self.buffer.num_episodes < episodes:
             if self.buffer.num_episodes % self.log_freq == 0:
-                self.logger.write_log(
-                    "Seen {0} episodes so far".format(self.buffer.num_episodes)
-                )
+                if write_log_flag:
+                    self.logger.write_log(
+                        "Seen {0} episodes so far".format(self.buffer.num_episodes)
+                    )
+                    write_log_flag = False
+            else:
+                write_log_flag = True
             with torch.no_grad():
                 action = self.select_action(state)
             next_state, reward, done, _ = self.envs.step(action)
