@@ -1,7 +1,7 @@
 from agents.off_policy.dqn import DeepQualityNetwork
 from samplers.samplers import EpsilonGreedySampler
 from environments import environments
-from log_utils.log_utils import CustomLogger
+from log_utils.custom_logger import CustomLogger
 
 logger = CustomLogger("dqn_cartpole")
 agent = DeepQualityNetwork(

@@ -1,6 +1,6 @@
 from agents.on_policy.a3c import AdvantageActorCritic
 from environments import environments
-from log_utils.log_utils import CustomLogger
+from log_utils.custom_logger import CustomLogger
 
 logger = CustomLogger("a3c_cartpole")
 agent = AdvantageActorCritic(
@@ -22,5 +22,5 @@ agent = AdvantageActorCritic(
     evaluate_episodes=10,
 )
 
-agent.train(200)
+agent.train(10000)
 agent.plot()

@@ -3,7 +3,7 @@ from buffers.buffer import MultiEnvTransition
 from typing import Dict, List, Any, Callable, Optional
 from environments.environments import Environment
 from agents import agent
-from log_utils.log_utils import CustomLogger
+from log_utils.custom_logger import CustomLogger
 
 
 class Agent(agent.Agent):

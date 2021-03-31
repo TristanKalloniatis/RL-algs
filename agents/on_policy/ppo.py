@@ -1,7 +1,7 @@
 from agents.on_policy.agent import Agent
 import torch
 from typing import Dict, Any, Optional
-from log_utils.log_utils import CustomLogger
+from log_utils.custom_logger import CustomLogger
 
 
 class ProximalPolicyOptimisation(Agent):

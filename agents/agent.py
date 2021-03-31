@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from losses.multi_loss import LossManager
 from environments.env_constructor import make_envs
-from log_utils.log_utils import CustomLogger
+from log_utils.custom_logger import CustomLogger
 from buffers.buffer import MultiEnvBuffer
 import matplotlib.pyplot as plt
 import os

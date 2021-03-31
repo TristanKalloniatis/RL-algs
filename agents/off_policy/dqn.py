@@ -5,7 +5,7 @@ import numpy as np
 from samplers import samplers
 from environments.environments import Environment
 import torch
-from log_utils.log_utils import CustomLogger
+from log_utils.custom_logger import CustomLogger
 
 
 class DeepQualityNetwork(Agent):
